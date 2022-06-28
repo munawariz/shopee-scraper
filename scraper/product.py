@@ -99,3 +99,5 @@ class Product:
 if __name__ == '__main__':
     product = Product('https://shopee.co.id/DOMPET-DISIPLIN-Keuangan-Bulanan-Walet-Organizer-Dompet-Organizer-Dompet-pintar-i.21749933.7286427645?sp_atk=c0b0f4cb-98a9-40bc-8390-21f35361f32c&xptdk=c0b0f4cb-98a9-40bc-8390-21f35361f32c')
     product.get_product_info()
+
+    print(product.get_product_info())
