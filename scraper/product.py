@@ -79,6 +79,7 @@ class Product:
                 'price_min': self.data['data']['price_min'],
                 'price_max': self.data['data']['price_max'],
                 'price': self.data['data']['price'],
+                'sold': self.data['data']['sold'] if self.data['data']['sold'] > self.data['data']['historical_sold'] else self.data['data']['historical_sold'],
                 'rating': {
                     'average': self.data['data']['item_rating']['rating_star'],
                     'count': self.data['data']['item_rating']['rating_count'][0],
