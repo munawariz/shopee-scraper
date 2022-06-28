@@ -1,6 +1,5 @@
 from typing import Union
-from fastapi import FastAPI, Request, Response
-from models import ProductURL
+from fastapi import FastAPI, Request, Response, Body
 from scraper.product import Product
 from shopee_scraper import *
 
@@ -21,8 +20,9 @@ async def read_items(username: str, q: Union[str, None] = None):
     return data
 
 @app.get("/products/")
-def get_product(payload: ProductURL, response: Response):
-    product = Product(payload.url)
+async def get_product(request: Request, response: Response, payload: dict = Body(default={})):
+    url = payload['url'] if 'url' in payload else request.query_params.get('url')
+    product = Product(url)
     data = product.info().serialize()
 
     if data:
