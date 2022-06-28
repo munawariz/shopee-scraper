@@ -1,6 +1,9 @@
+from email import charset
+from itertools import product
+import string
 from typing import Union
-
 from fastapi import FastAPI
+from shopee_scraper import *
 
 app = FastAPI()
 
@@ -10,6 +13,11 @@ def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.get("/items/{username}")
+async def read_items(username: str, q: Union[str, None] = None):
+    shopee_scrapper = ShopeeScrapper(username)
+    products, error_msg = shopee_scrapper.scrape_list_items()
+    data = {}
+    if not error_msg: data['data'] = shopee_scrapper.generate_items_json(products)
+    data['message'] = error_msg
+    return data
