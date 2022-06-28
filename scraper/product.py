@@ -1,4 +1,6 @@
 import requests
+from enums.product_serialize_type import ProductSerializeType
+from datetime import datetime
 
 class Product:
     def __init__(self, link):
@@ -41,11 +43,11 @@ class Product:
 
         return f'{self.product_info_url}?itemid={item_id}&shopid={shop_id}'
 
-    def get_product_rating_url(self, filter=0, limit=5):
+    def get_product_rating_url(self, filter=0, limit=5, offset=0):
         shop_id = self.get_shop_id()
         item_id = self.get_item_id()
 
-        return f'{self.product_rating_url}?itemid={item_id}&shopid={shop_id}&filter={filter}&limit={limit}&offset=0&type=0'
+        return f'{self.product_rating_url}?itemid={item_id}&shopid={shop_id}&filter={filter}&limit={limit}&offset={offset}&type=0'
         
     def get_product_info(self):
         if not self.valid_link():
@@ -57,44 +59,90 @@ class Product:
 
         return response
 
+    def get_product_rating(self, filter=0, limit=5, offset=0):
+        if not self.valid_link():
+            return None
+        
+        url = self.get_product_rating_url(filter, limit, offset)
+        with requests.session() as session:
+            response = session.get(url, headers=self.generate_headers())
+
+        return response
+
     def info(self):
         self.data = self.get_product_info().json()
         self.error = self.data['error'] if self.data['error'] else None
 
         return self
 
-    def serialize(self):
+    def rating(self, filter=0, limit=5, offset=0):
+        self.data = self.get_product_rating(filter, limit, offset).json()
+        self.error = self.data['error'] if self.data['error'] else None
+
+        return self
+        
+
+    def rating_serialize(self):
+        response = []
+        for rating in self.data['data']['ratings']:
+            rating_data = {
+                'item_id': rating['itemid'],
+                'user_id': rating['userid'],
+                'username': rating['author_username'],
+                'comment': rating['comment'],
+                'created_at': rating['ctime'],
+                'like_count': rating['like_count'],
+                'images': rating['images'],
+                'videos': rating['videos'],
+                'tags': rating['tags'],
+                'rating_star': rating['rating_star'],
+            }
+            response.append(rating_data)
+        return response
+
+    def serialize(self, type: ProductSerializeType):
         if not self.data or self.error:
             return None
-            
-        return {
-            'meta': {
-                'item_id': self.data['data']['itemid'],
-                'shop_id': self.data['data']['shopid'],
-                'user_id': self.data['data']['userid']
-            },
-            'product': {
-                'name': self.data['data']['name'],
-                'description': self.data['data']['description'],
-                'price_min': self.data['data']['price_min'],
-                'price_max': self.data['data']['price_max'],
-                'price': self.data['data']['price'],
-                'sold': self.data['data']['sold'] if self.data['data']['sold'] > self.data['data']['historical_sold'] else self.data['data']['historical_sold'],
-                'rating': {
-                    'average': self.data['data']['item_rating']['rating_star'],
-                    'count': self.data['data']['item_rating']['rating_count'][0],
-                    'star': {
-                        '1': self.data['data']['item_rating']['rating_count'][1],
-                        '2': self.data['data']['item_rating']['rating_count'][2],
-                        '3': self.data['data']['item_rating']['rating_count'][3],
-                        '4': self.data['data']['item_rating']['rating_count'][4],
-                        '5': self.data['data']['item_rating']['rating_count'][5],
+
+        match type:
+            case ProductSerializeType.PRODUCT:
+                return {
+                    'meta': {
+                        'item_id': self.data['data']['itemid'],
+                        'shop_id': self.data['data']['shopid'],
+                        'user_id': self.data['data']['userid']
+                    },
+                    'product': {
+                        'name': self.data['data']['name'],
+                        'description': self.data['data']['description'],
+                        'price_min': self.data['data']['price_min'],
+                        'price_max': self.data['data']['price_max'],
+                        'price': self.data['data']['price'],
+                        'sold': self.data['data']['sold'] if self.data['data']['sold'] > self.data['data']['historical_sold'] else self.data['data']['historical_sold'],
+                        'rating': {
+                            'average': self.data['data']['item_rating']['rating_star'],
+                            'count': self.data['data']['item_rating']['rating_count'][0],
+                            'star': {
+                                '1': self.data['data']['item_rating']['rating_count'][1],
+                                '2': self.data['data']['item_rating']['rating_count'][2],
+                                '3': self.data['data']['item_rating']['rating_count'][3],
+                                '4': self.data['data']['item_rating']['rating_count'][4],
+                                '5': self.data['data']['item_rating']['rating_count'][5],
+                            }
+                        },
+                        'attributes': self.data['data']['attributes'],
+                        'categories': self.data['data']['categories'],
                     }
-                },
-                'attributes': self.data['data']['attributes'],
-                'categories': self.data['data']['categories'],
-            }
-        }
+                }
+            case ProductSerializeType.RATING:
+                return {
+                    'meta': {
+                        'total': self.data['data']['item_rating_summary']['rating_total'],
+                        'with_media': self.data['data']['item_rating_summary']['rcount_with_media'],
+                        'with_context': self.data['data']['item_rating_summary']['rcount_with_context']
+                    },
+                    'ratings': self.rating_serialize()
+                }
 
 if __name__ == '__main__':
     product = Product('https://shopee.co.id/DOMPET-DISIPLIN-Keuangan-Bulanan-Walet-Organizer-Dompet-Organizer-Dompet-pintar-i.21749933.7286427645?sp_atk=c0b0f4cb-98a9-40bc-8390-21f35361f32c&xptdk=c0b0f4cb-98a9-40bc-8390-21f35361f32c')
