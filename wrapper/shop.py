@@ -56,5 +56,5 @@ class Shop(BaseWrapper):
             'is_official_shop': self.data['data']['is_official_shop'],
             'is_shopee_verified': self.data['data']['is_shopee_verified'],
             'shop_location': self.data['data']['shop_location'],
-            'shop_covers': [{'url': f'{self.image_base_url}/{cover["image_url"]}'} for cover in self.data['data']['shop_covers'] if cover['type'] == 0],
+            'shop_covers': [{'url': f'{self.image_base_url}/{cover["image_url"]}'} for cover in self.data['data']['shop_covers'] if cover['type'] == 0] if self.data['data']['shop_covers'] else None,
         }
