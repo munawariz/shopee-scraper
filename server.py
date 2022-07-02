@@ -1,8 +1,7 @@
-from typing import Union
 from fastapi import FastAPI, Request, Response, Body
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-from wrapper import Product, ProductReview
-from shopee_scraper import *
+from wrapper import Product, ProductReview, Shop
 
 app = FastAPI(title='shopee-wrapper', openapi_url=f'/shopee-wrapper/openapi.json')
 app.add_middleware(
@@ -15,16 +14,17 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return RedirectResponse(url='/docs', status_code=302)
 
-@app.get("/items/{username}")
-async def read_items(username: str, q: Union[str, None] = None):
-    shopee_scrapper = ShopeeScrapper(username)
-    products, error_msg = shopee_scrapper.scrape_list_items()
-    data = {}
-    if not error_msg: data['data'] = shopee_scrapper.generate_items_json(products)
-    data['message'] = error_msg
-    return data
+@app.get("/shops/")
+async def get_shop(request: Request, response: Response, payload: dict = Body(default={})):
+    url = payload['url'] if 'url' in payload else request.query_params.get('url')
+    username = payload['username'] if 'username' in payload else request.query_params.get('username')
+    shop = Shop(link=url, username=username)
+
+    response.status_code = shop.status_code
+    response.body = shop.serialize() if not shop.error else {'error': shop.error}
+    return response.body
 
 @app.get("/products/")
 async def get_product(request: Request, response: Response, payload: dict = Body(default={})):
