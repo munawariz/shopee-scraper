@@ -3,6 +3,8 @@ import json
 
 class BaseWrapper:
     base_url = 'https://shopee.co.id'
+    image_base_url = 'https://cf.shopee.co.id/file'
+    video_base_url = 'http://play-ws.vod.shopee'
 
     def __init__(self):
         self.establish_connection()

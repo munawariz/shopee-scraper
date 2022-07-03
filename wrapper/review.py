@@ -39,7 +39,7 @@ class ProductReview(BaseWrapper):
 
         return self.data
 
-    def serialize_review(self):
+    def __serialize_review(self):
         response = []
         for rating in self.data['data']['ratings']:
             rating_data = {
@@ -67,5 +67,5 @@ class ProductReview(BaseWrapper):
                 'with_media': self.data['data']['item_rating_summary']['rcount_with_media'],
                 'with_context': self.data['data']['item_rating_summary']['rcount_with_context']
             },
-            'reviews': self.serialize_review()
+            'reviews': self.__serialize_review()
         }
