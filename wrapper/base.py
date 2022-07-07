@@ -29,8 +29,5 @@ class BaseWrapper:
 
         return json.loads(data.decode('utf-8'))
 
-    def valid_link(self):
-        return self.link.startswith('https://shopee')
-
     def serialize(self):
         raise NotImplementedError

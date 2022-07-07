@@ -1,33 +1,41 @@
 from .base import BaseWrapper
+from .review import ProductReview
+from functools import cached_property
 
 class Product(BaseWrapper):
-    def __init__(self, link):
+    def __init__(self, link = None, shop_id = None, item_id = None, **kwargs):
         super().__init__()
         self.link = link
+        self.shop_id = shop_id
+        self.item_id = item_id
+        self.kwargs = kwargs
         self.base_url = 'https://shopee.co.id/api/v4/item/get'
-        self.data = self.__get_product_info()
 
-    # itemId and shopId is already exists in the url, we just need to extract it using some substring logic. Some regex may be used in the future.
-    def get_shop_id(self):
+    @cached_property
+    def reviews(self):
+        return ProductReview(shop_id=self.shop_id, item_id=self.item_id, **self.kwargs)
+
+    @cached_property
+    def url(self):
+        if not self.link and not (self.shop_id and self.item_id):
+            raise Exception('link or shop_id and item_id is required')
+
+        if self.link and not (self.shop_id and self.item_id):
+            self.shop_id = self.__get_shop_id()
+            self.item_id = self.__get_item_id()
+
+        return f'{self.base_url}?itemid={self.item_id}&shopid={self.shop_id}'
+
+    def __get_shop_id(self):
         product_slug = str(self.link).split('/')[-1]
         return product_slug.split('.')[1]
 
-    def get_item_id(self):
+    def __get_item_id(self):
         product_slug = str(self.link).split('/')[-1].split('?')[0]
         return product_slug.split('.')[2]
-
-    def get_product_info_url(self):
-        self.shop_id = self.get_shop_id()
-        self.item_id = self.get_item_id()
-        self.url = f'{self.base_url}?itemid={self.item_id}&shopid={self.shop_id}'
-        return self.url
-        
+    
     def __get_product_info(self):
-        if not self.valid_link():
-            return None
-        
-        url = self.get_product_info_url()
-        self.connection.request('GET', url, headers=self.headers)
+        self.connection.request('GET', self.url, headers=self.headers)
 
         with self.connection.getresponse() as response:
             self.data = self.to_json(response)
@@ -64,7 +72,9 @@ class Product(BaseWrapper):
 
         return result
 
+    @cached_property
     def serialize(self):
+        self.__get_product_info()
         if not self.data or self.error:
             return None
 
@@ -117,6 +127,6 @@ class Product(BaseWrapper):
                             'url': video['default_format']['url'],
                             'format': video['default_format']['profile'],
                             'definition': video['default_format']['defn']
-                        } for video in self.data['data']['video_info_list']],
+                        } for video in self.data['data']['video_info_list']] if self.data['data']['video_info_list'] else None,
                 }
             }
