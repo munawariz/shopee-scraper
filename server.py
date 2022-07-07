@@ -23,26 +23,41 @@ async def get_shop(request: Request, response: Response, payload: dict = Body(de
     shop = Shop(link=url, username=username)
 
     response.status_code = shop.status_code
-    response.body = shop.serialize() if not shop.error else {'error': shop.error}
+    response.body = shop.serialize if not shop.error else {'error': shop.error}
+    return response.body
+
+@app.get("/shops/products/")
+async def get_products(request: Request, response: Response, payload: dict = Body(default={})):
+    url = payload['url'] if 'url' in payload else request.query_params.get('url')
+    username = payload['username'] if 'username' in payload else request.query_params.get('username')
+    shop = Shop(link=url, username=username)
+
+    response.status_code = shop.status_code
+    response.body = {'products': len(shop.products)} if not shop.error else {'error': shop.error}
     return response.body
 
 @app.get("/products/")
 async def get_product(request: Request, response: Response, payload: dict = Body(default={})):
     url = payload['url'] if 'url' in payload else request.query_params.get('url')
-    product = Product(url)
+    shop_id = payload['shop_id'] if 'shop_id' in payload else request.query_params.get('shop_id')
+    item_id = payload['item_id'] if 'item_id' in payload else request.query_params.get('item_id')
+    product = Product(link=url, shop_id=shop_id, item_id=item_id)
 
     response.status_code = product.status_code
-    response.body = product.serialize() if not product.error else {'error': product.error}
+    response.body = product.serialize if not product.error else {'error': product.error}
     return response.body
 
-@app.get("/reviews/")
+@app.get("/products/reviews/")
 async def get_review(request: Request, response: Response, payload: dict = Body(default={})):
     url = payload['url'] if 'url' in payload else request.query_params.get('url')
+    shop_id = payload['shop_id'] if 'shop_id' in payload else request.query_params.get('shop_id')
+    item_id = payload['item_id'] if 'item_id' in payload else request.query_params.get('item_id')
     filter = request.query_params.get('filter') or 0
     limit = request.query_params.get('limit') or 5
     offset = request.query_params.get('offset') or 0
-    review = ProductReview(url, filter, limit, offset)
+    product = Product(link=url, shop_id=shop_id, item_id=item_id, filter=filter, limit=limit, offset=offset)
+    review = product.reviews
 
     response.status_code = review.status_code
-    response.body = review.serialize() if not review.error else {'error': review.error}
+    response.body = review.serialize if not review.error else {'error': review.error}
     return response.body

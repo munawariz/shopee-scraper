@@ -1,36 +1,33 @@
 from .base import BaseWrapper
+from functools import cached_property
 
 class ProductReview(BaseWrapper):
-    def __init__(self, link, filter=0, limit=5, offset=0):
+    def __init__(self, link=None, shop_id=None, item_id=None, filter=0, limit=5, offset=0):
         super().__init__()
         self.link = link
+        self.shop_id = shop_id
+        self.item_id = item_id
         self.filter = filter
         self.limit = limit
         self.offset = offset
         self.base_url = 'https://shopee.co.id/api/v2/item/get_ratings'
         self.image_base_url = 'https://cf.shopee.co.id/file'
+
         self.data = self.__get_product_review()
 
-    # itemId and shopId is already exists in the url, we just need to extract it using some substring logic. Some regex may be used in the future.
-    def get_shop_id(self):
-        product_slug = str(self.link).split('/')[-1]
-        return product_slug.split('.')[1]
+    @cached_property
+    def url(self):
+        if not self.link and not (self.shop_id and self.item_id):
+            raise Exception('link or shop_id and item_id is required')
 
-    def get_item_id(self):
-        product_slug = str(self.link).split('/')[-1].split('?')[0]
-        return product_slug.split('.')[2]
+        if self.link and not (self.shop_id and self.item_id):
+            self.shop_id = self.__get_shop_id()
+            self.item_id = self.__get_item_id()
 
-    def get_product_review_url(self):
-        shop_id = self.get_shop_id()
-        item_id = self.get_item_id()
-        return f'{self.base_url}?itemid={item_id}&shopid={shop_id}&filter={self.filter}&limit={self.limit}&offset={self.offset}&type=0'
+        return f'{self.base_url}?itemid={self.item_id}&shopid={self.shop_id}&filter={self.filter}&limit={self.limit}&offset={self.offset}&type=0'
 
     def __get_product_review(self):
-        if not self.valid_link():
-            return None
-
-        url = self.get_product_review_url()
-        self.connection.request('GET', url, headers=self.headers)
+        self.connection.request('GET', self.url, headers=self.headers)
 
         with self.connection.getresponse() as response:
             self.data = self.to_json(response)
@@ -57,6 +54,7 @@ class ProductReview(BaseWrapper):
             response.append(rating_data)
         return response
 
+    @cached_property
     def serialize(self):
         if not self.data or self.error:
             return None
