@@ -36,10 +36,8 @@ class Shop(BaseWrapper):
 
     @cached_property
     def products(self):
-        # self.products_url = f'{self.products_url}?shopid={self.shop_id}&limit={self.serialize["item_count"]}'
-        self.products_url = f'{self.products_url}?shopid={self.shop_id}&limit=5'
+        self.products_url = f'{self.products_url}?shopid={self.shop_id}&limit={self.serialize["item_count"]}'
         self.connection.request('GET', self.products_url, headers=self.headers)
-        print('ewe')
 
         with self.connection.getresponse() as response:
             data = self.to_json(response)
