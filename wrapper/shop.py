@@ -58,11 +58,11 @@ class Shop(BaseWrapper):
                 'shop_id': self.data['data']['shopid'],
             },
             'name': self.data['data']['name'],
-            'description': self.data['data']['description'],
+            'description': self.data['data']['description'] if 'description' in self.data['data'] else None,
             'item_count': self.data['data']['item_count'],
             'country': self.data['data']['country'],
             'rating': {
-                'average': self.data['data']['rating_star'],
+                'average': self.data['data']['rating_star'] if 'rating_star' in self.data['data'] else None,
                 'rating_count': self.data['data']['rating_normal'] + self.data['data']['rating_good'] + self.data['data']['rating_bad'],
                 'bad_rating_count': self.data['data']['rating_bad'],
                 'good_rating_count': self.data['data']['rating_good'],
@@ -71,15 +71,5 @@ class Shop(BaseWrapper):
             'is_official_shop': self.data['data']['is_official_shop'],
             'is_shopee_verified': self.data['data']['is_shopee_verified'],
             'shop_location': self.data['data']['shop_location'],
-            'shop_covers': [{'url': f'{self.image_base_url}/{cover["image_url"]}'} for cover in self.data['data']['shop_covers'] if cover['type'] == 0] if self.data['data']['shop_covers'] else None,
+            'shop_covers': [{'url': f'{self.image_base_url}/{cover["image_url"]}'} for cover in self.data['data']['shop_covers'] if cover['type'] == 0] if 'shop_covers' in self.data['data'] else None,
         }
-
-class ShopProductProxy:
-    def __init__(self, shop_id, item_id):
-        self.shop_id = shop_id
-        self.item_id = item_id
-    
-    @cached_property
-    def serialize(self):
-        product = Product(shop_id=self.shop_id, item_id=self.item_id)
-        return product.serialize
