@@ -127,6 +127,6 @@ class Product(BaseWrapper):
                             'url': video['default_format']['url'],
                             'format': video['default_format']['profile'],
                             'definition': video['default_format']['defn']
-                        } for video in self.data['data']['video_info_list']] if 'video_info_list' in self.data['data'] else None,
+                        } for video in self.data['data']['video_info_list']] if self.data['data']['video_info_list'] else None,
                 }
             }
