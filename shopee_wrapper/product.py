@@ -10,6 +10,7 @@ class Product(BaseWrapper):
         self.item_id = item_id
         self.kwargs = kwargs
         self.base_url = 'https://shopee.co.id/api/v4/item/get'
+        self.shop_info_url = 'https://shopee.co.id/api/v4/product/get_shop_info'
 
     @cached_property
     def reviews(self):
@@ -25,6 +26,16 @@ class Product(BaseWrapper):
             self.item_id = self.__get_item_id()
 
         return f'{self.base_url}?itemid={self.item_id}&shopid={self.shop_id}'
+
+    @cached_property
+    def shop_url(self):
+        if not self.link and not (self.shop_id):
+            raise Exception('link or shop_id is required')
+
+        if self.link and not (self.shop_id):
+            self.shop_id = self.__get_shop_id()
+
+        return f'{self.shop_info_url}?shopid={self.shop_id}'
 
     def __get_shop_id(self):
         product_slug = str(self.link).split('/')[-1]
@@ -43,6 +54,17 @@ class Product(BaseWrapper):
             self.error = self.data['error'] if self.data['error'] else None
 
         return self.data
+
+    def __get_shop_info(self):
+        self.connection.request('GET', self.shop_url, headers=self.headers)
+
+        with self.connection.getresponse() as response:
+            self.shop_data = self.to_json(response)
+            self.status_code = response.getcode()
+            self.error = self.shop_data['error'] if self.shop_data['error'] else None
+
+        return self.shop_data
+
 
     def __serialize_variation_options(self, variation):
         if not self.data or self.error:
@@ -75,7 +97,8 @@ class Product(BaseWrapper):
     @cached_property
     def serialize(self):
         self.__get_product_info()
-        if not self.data or self.error:
+        self.__get_shop_info()
+        if not self.data or not self.shop_data or self.error:
             return None
 
         return {
@@ -128,5 +151,19 @@ class Product(BaseWrapper):
                             'format': video['default_format']['profile'],
                             'definition': video['default_format']['defn']
                         } for video in self.data['data']['video_info_list']] if self.data['data']['video_info_list'] else None,
+                },
+                'shop': {
+                    'username': self.shop_data['data']['account']['username'],
+                    'avatar': f'{self.image_base_url}/{self.shop_data["data"]["account"]["portrait"]}' if self.shop_data['data']['account']['portrait'] else None,
+                    'name': self.shop_data['data']['name'],
+                    'place': self.shop_data['data']['place'],
+                    'location': self.shop_data['data']['shop_location'],
+                    'response_rate': self.shop_data['data']['response_rate'],
+                    'product_count': self.shop_data['data']['item_count'],
+                    'follower_count': self.shop_data['data']['follower_count'],
+                    'is_official_shop': self.shop_data['data']['is_official_shop'],
+                    'is_preferred_plus_seller': self.shop_data['data']['is_preferred_plus_seller'],
+                    'is_shopee_verified': self.shop_data['data']['is_shopee_verified'],
+                    'rating': self.shop_data['data']['rating_star']
                 }
             }
